@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="match_parent"
+        android:layout_height="320dp" /> <!-- Camera preview size -->
+
+    <ImageView
+        android:id="@+id/ivCapturedImage"
+        android:layout_width="match_parent"
+        android:layout_height="320dp"
+        android:contentDescription="Captured image" />
+
+    <Button
+        android:id="@+id/btnCapturePhoto"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Capture Photo" />
+
+    <TextView
+        android:id="@+id/tvExecutionLog"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Execution Log: "
+        android:padding="16dp"/>
+
+    <TextView
+        android:id="@+id/tvReading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Meter Reading: "
+        android:padding="16dp"/>
+</LinearLayout>
