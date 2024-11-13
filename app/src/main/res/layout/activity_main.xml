@@ -1,37 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
-    <androidx.camera.view.PreviewView
-        android:id="@+id/previewView"
+    <!-- Scrollable Container -->
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="320dp" /> <!-- Camera preview size -->
+        android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/ivCapturedImage"
-        android:layout_width="match_parent"
-        android:layout_height="320dp"
-        android:contentDescription="Captured image" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
 
-    <Button
-        android:id="@+id/btnCapturePhoto"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Capture Photo" />
+            <!-- Camera Preview -->
+            <androidx.camera.view.PreviewView
+                android:id="@+id/previewView"
+                android:layout_width="match_parent"
+                android:layout_height="320dp"
+                android:layout_marginBottom="8dp" />
 
-    <TextView
-        android:id="@+id/tvExecutionLog"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Execution Log: "
-        android:padding="16dp"/>
+            <!-- Capture Photo Button -->
+            <Button
+                android:id="@+id/btnCapturePhoto"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="Capture Photo"
+                android:layout_marginBottom="16dp" />
 
-    <TextView
-        android:id="@+id/tvReading"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Meter Reading: "
-        android:padding="16dp"/>
-</LinearLayout>
+            <!-- Execution Log Text -->
+            <TextView
+                android:id="@+id/tvExecutionLog"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="Execution Log:"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Meter Reading Text -->
+            <TextView
+                android:id="@+id/tvReading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="Meter Reading:"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Captured Image Display -->
+            <ImageView
+                android:id="@+id/ivCapturedImage"
+                android:layout_width="match_parent"
+                android:layout_height="320dp"
+                android:layout_marginBottom="8dp"
+                android:contentDescription="Captured image" />
+
+            <!-- Annotated Image Display -->
+            <ImageView
+                android:id="@+id/ivAnnotatedImage"
+                android:layout_width="match_parent"
+                android:layout_height="320dp"
+                android:contentDescription="Annotated image" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

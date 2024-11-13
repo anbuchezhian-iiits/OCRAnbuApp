@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
@@ -20,7 +19,6 @@ import android.content.pm.PackageManager
 import org.tensorflow.lite.meeterreader.ocr.ModelExecutionResult
 import org.tensorflow.lite.meeterreader.ocr.OCRModelExecutor
 
-
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
@@ -28,6 +26,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var imageCapture: ImageCapture
     private val REQUEST_PERMISSION_CAMERA = 100
+
+    // Field for logging execution messages
+    private var executionLog: String = ""
+
     private val outputDirectory: File by lazy {
         val mediaDir = externalMediaDirs.firstOrNull()?.let {
             File(it, resources.getString(R.string.app_name)).apply { mkdirs() }
@@ -63,20 +65,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Start the camera preview with size 320x320
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
 
+            // Define the preview
             val preview = Preview.Builder()
-                .setTargetResolution(android.util.Size(320, 320)) // Set preview size to 320x320
+                .setTargetResolution(android.util.Size(320, 320)) // Set preview resolution
                 .setTargetRotation(windowManager.defaultDisplay.rotation)
                 .build()
                 .also {
                     it.setSurfaceProvider(binding.previewView.surfaceProvider)
                 }
 
+            // Define image capture use case
             imageCapture = ImageCapture.Builder()
                 .setTargetRotation(windowManager.defaultDisplay.rotation)
                 .build()
@@ -84,18 +87,15 @@ class MainActivity : AppCompatActivity() {
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
             try {
+                // Unbind all use cases and bind the required ones
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture
-                )
-                binding.previewView.rotation = 90f
+                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
             } catch (e: Exception) {
                 Log.e("CameraX", "Use case binding failed", e)
             }
         }, ContextCompat.getMainExecutor(this))
     }
 
-    // Capture an image and pass it to the OCR model
     private fun captureImage() {
         val photoFile = File(outputDirectory, "captured_image.jpg")
         val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
@@ -103,27 +103,20 @@ class MainActivity : AppCompatActivity() {
         imageCapture.takePicture(
             outputOptions, cameraExecutor, object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    // Decode the captured image file
                     var capturedImage = BitmapFactory.decodeFile(photoFile.absolutePath)
-
-                    // Correct the orientation if needed
                     capturedImage = adjustImageOrientation(capturedImage)
-
-                    // Resize to 320x320
                     val resizedImage = Bitmap.createScaledBitmap(capturedImage, 320, 320, false)
 
-                    // Display the resized image
                     displayCapturedImage(resizedImage)
 
-                    // Call the OCR model executor
-                    onApplyModel(resizedImage, ocrModelExecutor, inferenceThread) { recognizedText ->
-                        updateUIWithResults(recognizedText)
+                    onApplyModel(resizedImage, ocrModelExecutor, inferenceThread) { result ->
+                        updateUIWithResults(result)
                     }
                 }
 
                 override fun onError(exception: ImageCaptureException) {
-                    Log.e("Camera", "Error capturing image: ${exception.message}")
-                    Toast.makeText(this@MainActivity, "Error capturing image", Toast.LENGTH_SHORT).show()
+                    executionLog = "Error capturing image: ${exception.message}"
+                    updateExecutionLog()
                 }
             }
         )
@@ -145,32 +138,42 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Handle OCR execution
     private fun onApplyModel(
         contentImage: Bitmap,
         ocrModel: OCRModelExecutor?,
         inferenceThread: ExecutorCoroutineDispatcher,
-        onResult: (String) -> Unit // Callback to return the result
+        onResult: (ModelExecutionResult) -> Unit
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             withContext(inferenceThread) {
                 try {
-                    // Ensure the result is obtained from ModelExecutionResult
                     val result = ocrModel?.execute(contentImage) as ModelExecutionResult
-                    val recognizedText = result.reading ?: "No reading detected"
-                    onResult(recognizedText) // Return the result via the callback
+                    executionLog = "OCR execution completed successfully."
+                    onResult(result)
                 } catch (e: Exception) {
-                    Log.e("OCR", "OCR execution failed: ${e.message}")
-                    onResult("OCR execution failed") // If there was an error, return an error message
+                    executionLog = "OCR execution failed: ${e.message}"
+                    onResult(ModelExecutionResult(contentImage, executionLog, null))
                 }
+                updateExecutionLog()
             }
         }
     }
 
-    // Update the UI with the OCR result
-    private fun updateUIWithResults(recognizedText: String) {
-        binding.tvExecutionLog.text = "Execution Log: Success"
-        binding.tvReading.text = "Meter Reading: $recognizedText"
+    private fun updateUIWithResults(result: ModelExecutionResult) {
+        runOnUiThread {
+            // Show annotated image in new ImageView
+            binding.ivAnnotatedImage.setImageBitmap(result.bitmapResult)
+            // Display reading and execution log
+            binding.tvReading.text = "Meter Reading: ${result.reading ?: "No reading detected"}"
+            updateExecutionLog()
+        }
+    }
+
+    // Updates the Execution Log UI
+    private fun updateExecutionLog() {
+        runOnUiThread {
+            binding.tvExecutionLog.text = "Execution Log: $executionLog"
+        }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
@@ -179,7 +182,8 @@ class MainActivity : AppCompatActivity() {
             && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             startCamera()
         } else {
-            Toast.makeText(this, "Camera permission is required", Toast.LENGTH_SHORT).show()
+            executionLog = "Camera permission is required."
+            updateExecutionLog()
         }
     }
 }
